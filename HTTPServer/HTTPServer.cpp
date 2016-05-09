@@ -11,7 +11,6 @@
 #define WM_ACCEPT WM_USER + 1
 #define WM_RECV	WM_USER + 2
 #define WM_SOCKET_CLOSE WM_USER + 3
-
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
@@ -153,6 +152,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RECV:
 		if (LOWORD(lParam) == FD_READ)
 		{
+			int portDownload = 10000;
 			buffer = (char*)calloc(1024, 1);
 			getstr = (char*)calloc(1024, 1);
 			folder = (char*)calloc(1024, 1);
@@ -160,6 +160,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			fullpath = (char*)calloc(1024, 1);
 			recv((SOCKET)wParam, buffer, 1024, 0);
 			sscanf(buffer, "%s%s%s", getstr, folder, httpstr);
+			//Xoa ki tu / thua 
+			if (folder[strlen(folder) - 1] == '/') {
+				folder[strlen(folder) - 1] = '\0';
+			}
+			if (strstr(folder, "%20")) {
+				char* tmp = folder;
+				folder = replaceStr(folder, "%20", " ");
+				free(tmp);
+			}
 			free(buffer);
 			if (strlen(folder + 1) > 0)
 				sprintf(fullpath, "C:\\%s\\*.*", folder + 1);
@@ -168,23 +177,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			html = (char*)calloc(32768, 1);
 			sprintf(html, "%s", "<html><body>");
 			HANDLE hFind = FindFirstFileA(fullpath, &FDATA);
-			do
-			{
-				if (strlen(folder + 1) == 0)
-					sprintf(html + strlen(html), "<a href=\"%s\">%s</a><br>", FDATA.cFileName, FDATA.cFileName);
-				else
-					sprintf(html + strlen(html), "<a href=\"C:\\%s\\%s\">%s</a><br>", folder + 1, FDATA.cFileName, FDATA.cFileName);
-			} while (FindNextFileA(hFind, &FDATA));
-			sprintf(html + strlen(html), "</body></html>");
+			//Xet dieu kien co la fordel khong, neu la file thi gui file
+			if ((strcmp(FDATA.cFileName, ".") == 0) || (strlen(folder + 1) == 0)) {
+				do
+				{
+					if (strlen(folder + 1) == 0) {
+						if (FDATA.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+							sprintf(html + strlen(html), "<a href=\"%s\">%s</a><br>", getLink(FDATA.cFileName), FDATA.cFileName);
+						}
+						else {
+							sprintf(html + strlen(html), "<a href=\"%s\" download=\"%s\">%s</a><br>", getLink(FDATA.cFileName), FDATA.cFileName, FDATA.cFileName);
+						}
+					}
+					else
+						if (FDATA.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+							sprintf(html + strlen(html), "<a href=\"%s\/%s\">%s</a><br>", getLink(folder + 1), FDATA.cFileName, FDATA.cFileName);
+						}
+						else {
+							sprintf(html + strlen(html), "<a href=\"%s\/%s\" download=\"%s\">%s</a><br>", getLink(folder + 1), FDATA.cFileName, FDATA.cFileName, FDATA.cFileName);
+						}
+				} while (FindNextFileA(hFind, &FDATA));
+				sprintf(html + strlen(html), "</body></html>");
 
-			clenstr = (char*)calloc(1024, 1);
-			sprintf(clenstr, "Content - length: %d\n", strlen(html));
+				clenstr = (char*)calloc(1024, 1);
+				sprintf(clenstr, "Content - length: %d\n", strlen(html));
 
-			send((SOCKET)wParam, "HTTP/1.1 200 OK\n", 16, 0);
-			send((SOCKET)wParam, clenstr, strlen(clenstr), 0);
-			send((SOCKET)wParam, "Content-Type: text/html\n\n", 25, 0);
-			int sent = send((SOCKET)wParam, html, strlen(html), 0);
-
+				send((SOCKET)wParam, "HTTP/1.1 200 OK\n", 16, 0);
+				send((SOCKET)wParam, clenstr, strlen(clenstr), 0);
+				send((SOCKET)wParam, "Content-Type: text/html\n\n", 25, 0);
+				send((SOCKET)wParam, html, strlen(html), 0);
+			}
+			else {
+				char* fileName = (char*)calloc(1024, 1);				
+				sprintf(fileName, "C:%s", folder);
+				//replaceStr(fileName, "/", "\\");
+				sendFile(fileName, (SOCKET)wParam);
+				free(fileName);
+			}
 			free(clenstr);
 			free(html);
 		}
@@ -198,6 +227,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (g_count[i] > 0)
 				g_count[i] -= 1;
 		}
+		closesocket((SOCKET)wParam);//Dong socket vi trinh duyet se load lien tuc
 		break;
 	case WM_ACCEPT:
 		clen = sizeof(caddr);
@@ -250,7 +280,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			WSAStartup(MAKEWORD(2, 2), &DATA);
 			s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			saddr.sin_family = AF_INET;
-			saddr.sin_port = htons(8080);
+			saddr.sin_port = htons(PORT);
 			saddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 			bind(s, (sockaddr*)&saddr, sizeof(saddr));
 			listen(s, 5);
