@@ -91,3 +91,11 @@ int sendFile(char *filename, SOCKET socket) {
 	closesocket(socket);
 	return size;
 }
+char* add_info(struct sockaddr_in &client) {
+	char* buffer = (char*)calloc(1024, 1);
+	char *connected_ip = inet_ntoa(client.sin_addr);
+	int connected_port = ntohs(client.sin_port);
+	sprintf(buffer, "Server information: IP: %s, on PORT:%d<br>", getMyIp(), PORT);
+	sprintf(buffer + strlen(buffer), "Client information: IP: %s, on PORT:%d<br>", connected_ip, connected_port);
+	return buffer;
+}

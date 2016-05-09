@@ -173,12 +173,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (strlen(folder + 1) > 0)
 				sprintf(fullpath, "C:\\%s\\*.*", folder + 1);
 			else
-				sprintf(fullpath, "%s", "C:\\*.*");
-			html = (char*)calloc(32768, 1);
-			sprintf(html, "%s", "<html><body>");
+				sprintf(fullpath, "%s", "C:\\*.*");			
 			HANDLE hFind = FindFirstFileA(fullpath, &FDATA);
 			//Xet dieu kien co la fordel khong, neu la file thi gui file
 			if ((strcmp(FDATA.cFileName, ".") == 0) || (strlen(folder + 1) == 0)) {
+				html = (char*)calloc(32768, 1);
+				sprintf(html, "%s", "<html><body>");
+				sprintf(html + strlen(html), "%s", add_info(caddr));
 				do
 				{
 					if (strlen(folder + 1) == 0) {
