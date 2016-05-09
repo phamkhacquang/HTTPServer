@@ -4,7 +4,7 @@
 #include <winsock2.h>
 #include <stdio.h>
 #include <string> 
-const int PORT = 8080;
+const int PORT = 80;
 char * replaceStr(const char *string, const char *substr, const char *replacement) {
 	char *tok = NULL;
 	char *newstr = NULL;
@@ -60,36 +60,26 @@ char* getLink(int PORT) {
 	return newstr;
 }
 
-int sendFile(char *filename, SOCKET socket) {
-
-	FILE *file = fopen(filename, "r");
-	if (!file) return 0;
-
-	fseek(file, 0, SEEK_END);
-	int size = ftell(file);
-	fseek(file, 0, SEEK_SET);
-	if (size <= 0) return 0;
-
-	char* lenStrSend = NULL;
-	char* lenStrType = NULL;
-	char* contentType = "text/html";
-	lenStrSend = (char*)calloc(1024, 1);
-	lenStrType = (char*)calloc(1024, 1);
-	sprintf(lenStrSend, "Content - length: %d\n", size);
-	sprintf(lenStrType, "Content-Type: %s\n\n", contentType);
-	send(socket, "HTTP/1.1 200 OK\n", 16, 0);
-	send(socket, lenStrSend, strlen(lenStrSend), 0);
-	send(socket, lenStrType, strlen(lenStrType), 0);
-
-	char* buffer = (char*)calloc(size, 1);
-	fread(buffer, size, 1, file);
-	send(socket, buffer, size, 0);
-	fclose(file);
-	free(buffer);
-	free(lenStrSend);
-	free(lenStrType);
-	closesocket(socket);
-	return size;
+bool sendFile(char *filename, SOCKET socket)
+{
+	FILE *f = fopen(filename, "rb");
+	if (f == NULL) {
+		return false;
+	}
+	fseek(f, 0, SEEK_END);
+	long filesize = ftell(f);
+	rewind(f);
+	if (filesize == EOF)
+		return false;
+	if (filesize > 0)
+	{
+		char* buffer = new char[filesize];
+		fread(buffer, 1, filesize, f);
+		send(socket, buffer, filesize, 0);
+		free(buffer);
+	}
+	fclose(f);	
+	return true;
 }
 char* add_info(struct sockaddr_in &client) {
 	char* buffer = (char*)calloc(1024, 1);
