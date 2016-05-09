@@ -4,7 +4,7 @@
 #include <winsock2.h>
 #include <stdio.h>
 #include <string> 
-const int PORT = 80;
+const int PORT = 8080;
 char * replaceStr(const char *string, const char *substr, const char *replacement) {
 	char *tok = NULL;
 	char *newstr = NULL;
@@ -54,12 +54,6 @@ char* getLink(char* filePath) {
 	return newstr;
 }
 
-char* getLink(int PORT) {
-	char* newstr = (char*)calloc(1024, 1);
-	sprintf(newstr, "http://%s:%d/", getMyIp(), PORT);
-	return newstr;
-}
-
 bool sendFile(char *filename, SOCKET socket)
 {
 	FILE *f = fopen(filename, "rb");
@@ -85,7 +79,7 @@ char* add_info(struct sockaddr_in &client) {
 	char* buffer = (char*)calloc(1024, 1);
 	char *connected_ip = inet_ntoa(client.sin_addr);
 	int connected_port = ntohs(client.sin_port);
-	sprintf(buffer, "Server information: IP: %s, on PORT:%d<br>", getMyIp(), PORT);
-	sprintf(buffer + strlen(buffer), "Client information: IP: %s, on PORT:%d<br>", connected_ip, connected_port);
+	sprintf(buffer, "Client information: IP: %s, on PORT:%d<br>", connected_ip, connected_port);
+	sprintf(buffer + strlen(buffer), "Server information: IP: %s, on PORT:%d<br>", getMyIp(), PORT);
 	return buffer;
 }

@@ -136,7 +136,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	SOCKET s = INVALID_SOCKET;
 	SOCKET c = INVALID_SOCKET;
 	SOCKADDR_IN saddr;
-	SOCKADDR_IN caddr;
+	static SOCKADDR_IN caddr;
 	WIN32_FIND_DATAA FDATA;
 	int clen;
 	int i;
