@@ -173,43 +173,57 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (strlen(folder + 1) > 0)
 				sprintf(fullpath, "C:\\%s\\*.*", folder + 1);
 			else
-				sprintf(fullpath, "%s", "C:\\*.*");			
+				sprintf(fullpath, "%s", "C:\\*.*");
 			HANDLE hFind = FindFirstFileA(fullpath, &FDATA);
 			//Xet dieu kien co la fordel khong, neu la file thi gui file
 			if ((strcmp(FDATA.cFileName, ".") == 0) || (strlen(folder + 1) == 0)) {
 				html = (char*)calloc(32768, 1);
-				sprintf(html, "%s", "<html><body>");
-				sprintf(html + strlen(html), "%s", add_info(caddr));
+				//sprintf(html, "%s", add_info(caddr));				
 				do
 				{
+					if (strcmp(FDATA.cFileName, ".") == 0) continue;//Bo qua file "."
 					if (strlen(folder + 1) == 0) {
 						if (FDATA.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-							sprintf(html + strlen(html), "<a href=\"%s\">%s</a><br>", getLink(FDATA.cFileName), FDATA.cFileName);
+							sprintf(html + strlen(html), "<li><a href=\"%s\">", getLink(FDATA.cFileName));
+							sprintf(html + strlen(html), "<span class=\"icon folder full\"></span>");
+							sprintf(html + strlen(html), "<span class=\"name\">%s</span>", FDATA.cFileName);
+							sprintf(html + strlen(html), "</a></li>");
 						}
 						else {
-							sprintf(html + strlen(html), "<a href=\"%s\" download=\"%s\">%s</a><br>", getLink(FDATA.cFileName), FDATA.cFileName, FDATA.cFileName);
+							sprintf(html + strlen(html), "<li><a href=\"%s\" download=\"%s\">", getLink(FDATA.cFileName), FDATA.cFileName);
+							sprintf(html + strlen(html), "<span class=\"icon file f - %s\">.%s</span>", getFilenameExt(FDATA.cFileName), getFilenameExt(FDATA.cFileName));
+							sprintf(html + strlen(html), "<span class=\"name\">%s</span>", FDATA.cFileName);
+							sprintf(html + strlen(html), "<span class=\"details\">%s</span>", getFileSizeString(FDATA.cFileName));
+							sprintf(html + strlen(html), "</a></li>");
 						}
 					}
 					else
 						if (FDATA.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-							sprintf(html + strlen(html), "<a href=\"%s\/%s\">%s</a><br>", getLink(folder + 1), FDATA.cFileName, FDATA.cFileName);
+							sprintf(html + strlen(html), "<li><a href=\"%s\/%s\">", getLink(folder + 1), FDATA.cFileName);
+							sprintf(html + strlen(html), "<span class=\"icon folder full\"></span>");
+							sprintf(html + strlen(html), "<span class=\"name\">%s</span>", FDATA.cFileName);
 						}
 						else {
-							sprintf(html + strlen(html), "<a href=\"%s\/%s\" download=\"%s\">%s</a><br>", getLink(folder + 1), FDATA.cFileName, FDATA.cFileName, FDATA.cFileName);
+							sprintf(html + strlen(html), "<li><a href=\"%s\/%s\" download=\"%s\">", getLink(folder + 1), FDATA.cFileName, FDATA.cFileName);
+							sprintf(html + strlen(html), "<span class=\"icon file f-%s\">.%s</span>", getFilenameExt(FDATA.cFileName), getFilenameExt(FDATA.cFileName));
+							sprintf(html + strlen(html), "<span class=\"name\">%s</span>", FDATA.cFileName);
+							sprintf(html + strlen(html), "<span class=\"details\">%s</span>", getFileSizeString(FDATA.cFileName));
+							sprintf(html + strlen(html), "</a></li>");
 						}
 				} while (FindNextFileA(hFind, &FDATA));
-				sprintf(html + strlen(html), "</body></html>");
 
 				clenstr = (char*)calloc(1024, 1);
-				sprintf(clenstr, "Content - length: %d\n", strlen(html));
+				sprintf(clenstr, "Content - length: %d\n", strlen(html) + strlen(top) + strlen(bot));
 
 				send((SOCKET)wParam, "HTTP/1.1 200 OK\n", 16, 0);
 				send((SOCKET)wParam, clenstr, strlen(clenstr), 0);
 				send((SOCKET)wParam, "Content-Type: text/html\n\n", 25, 0);
+				send((SOCKET)wParam, top, strlen(top), 0);
 				send((SOCKET)wParam, html, strlen(html), 0);
+				send((SOCKET)wParam, bot, strlen(bot), 0);
 			}
 			else {
-				char* fileName = (char*)calloc(1024, 1);				
+				char* fileName = (char*)calloc(1024, 1);
 				sprintf(fileName, "C:%s", folder);
 				//replaceStr(fileName, "/", "\\");
 				sendFile(fileName, (SOCKET)wParam);

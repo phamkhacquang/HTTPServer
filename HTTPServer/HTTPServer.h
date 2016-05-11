@@ -53,6 +53,27 @@ char* getLink(char* filePath) {
 	sprintf(newstr, "http://%s:%d/%s", getMyIp(), PORT, filePath);
 	return newstr;
 }
+char* getFileSizeString(char *filename) {
+	char* returnValue = (char*)calloc(1024, 1);
+	FILE *f = fopen(filename, "rb");
+	if (f == NULL) {
+		return "0 KB";
+	}
+	fseek(f, 0, SEEK_END);
+	int64_t filesize = ftell(f);
+	if (filesize < 1024) {
+		sprintf(returnValue, "%d Byte", filesize);
+		return returnValue;
+	}
+	if (filesize < 1024*1024) {
+		sprintf(returnValue, "%d KB", filesize/1024);
+		return returnValue;
+	}
+	if (filesize < 1024*1024*1024) {
+		sprintf(returnValue, "%d MB", filesize/(1024*1024));
+		return returnValue;
+	}
+}
 
 bool sendFile(char *filename, SOCKET socket)
 {
@@ -75,6 +96,34 @@ bool sendFile(char *filename, SOCKET socket)
 	fclose(f);	
 	return true;
 }
+char* readTextFile(char *filename) {
+	FILE *f = fopen(filename, "rt");
+	if (f == NULL) {
+		return NULL;
+	}
+	fseek(f, 0, SEEK_END);
+	long filesize = ftell(f);
+	rewind(f);
+	if (filesize == EOF)
+		return false;
+	if (filesize > 0)
+	{
+		char *buffer = (char*)calloc(filesize, 1);
+		char *getstr = (char*)calloc(1024, 1);
+		while (!feof(f)) {
+			fgets(getstr, 1024, f);
+			sprintf(buffer + strlen(buffer), "%s", getstr);
+		}
+		fclose(f);
+		return buffer;
+	}
+	return NULL;
+}
+const char* getFilenameExt(const char *filename) {
+	const char *dot = strrchr(filename, '.');
+	if (!dot || dot == filename) return "";	
+	return dot + 1;
+}
 char* add_info(struct sockaddr_in &client) {
 	char* buffer = (char*)calloc(1024, 1);
 	char *connected_ip = inet_ntoa(client.sin_addr);
@@ -83,3 +132,5 @@ char* add_info(struct sockaddr_in &client) {
 	sprintf(buffer + strlen(buffer), "Server information: IP: %s, on PORT:%d<br>", getMyIp(), PORT);
 	return buffer;
 }
+const char* top = readTextFile("C:\\web/top.txt");
+const char* bot = readTextFile("C:\\web/bot.txt");
