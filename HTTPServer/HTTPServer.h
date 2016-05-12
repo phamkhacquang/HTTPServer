@@ -53,11 +53,14 @@ char* getLink(char* filePath) {
 	sprintf(newstr, "http://%s:%d/%s", getMyIp(), PORT, filePath);
 	return newstr;
 }
-char* getFileSizeString(char *filename) {
+char* getFileSizeString(char *filename, char *folder) {
 	char* returnValue = (char*)calloc(1024, 1);
-	FILE *f = fopen(filename, "rb");
+	char* fullPath = (char*)calloc(1024, 1);
+	sprintf(fullPath, "C:%s/%s", folder, filename);
+	FILE *f = fopen(fullPath, "rb");
+	free(fullPath);
 	if (f == NULL) {
-		return "0 KB";
+		return "N/A";
 	}
 	fseek(f, 0, SEEK_END);
 	int64_t filesize = ftell(f);
@@ -65,16 +68,41 @@ char* getFileSizeString(char *filename) {
 		sprintf(returnValue, "%d Byte", filesize);
 		return returnValue;
 	}
-	if (filesize < 1024*1024) {
-		sprintf(returnValue, "%d KB", filesize/1024);
+	if (filesize < 1024 * 1024) {
+		sprintf(returnValue, "%d KB", filesize / 1024);
 		return returnValue;
 	}
-	if (filesize < 1024*1024*1024) {
-		sprintf(returnValue, "%d MB", filesize/(1024*1024));
+	if (filesize < 1024 * 1024 * 1024) {
+		sprintf(returnValue, "%d MB", filesize / (1024 * 1024));
 		return returnValue;
 	}
 }
-
+char* getNumberOfFolderSubItem(char* path, char* folderName) {
+	char* fullPath = (char*)calloc(1024, 1);
+	char* returnValue = (char*)calloc(1024, 1);
+	sprintf(fullPath, "C:%s/%s\\*.*", path, folderName);
+	WIN32_FIND_DATAA FDATA;
+	HANDLE hFind = FindFirstFileA(fullPath, &FDATA);
+	int count = 0;
+	do {
+		count++;
+	} while (FindNextFileA(hFind, &FDATA));
+	free(fullPath);
+	count -= 2;//Bo 2 folder la "." va ".."
+	if (count < 0) {
+		return "N/A";
+	}
+	if (count == 0) {
+		return "Empty folder";
+	}
+	if (count == 1) {
+		return "1 item";
+	}
+	if (count > 1) {
+		sprintf(returnValue, "%d items", count);
+		return returnValue;
+	}
+}
 bool sendFile(char *filename, SOCKET socket)
 {
 	FILE *f = fopen(filename, "rb");
@@ -93,7 +121,7 @@ bool sendFile(char *filename, SOCKET socket)
 		send(socket, buffer, filesize, 0);
 		free(buffer);
 	}
-	fclose(f);	
+	fclose(f);
 	return true;
 }
 char* readTextFile(char *filename) {
@@ -117,19 +145,53 @@ char* readTextFile(char *filename) {
 		fclose(f);
 		return buffer;
 	}
+	fclose(f);
 	return NULL;
 }
-const char* getFilenameExt(const char *filename) {
-	const char *dot = strrchr(filename, '.');
-	if (!dot || dot == filename) return "";	
+char* getFilenameExt(const char *filename) {
+	char *tmp = (char*)calloc(1024, 1);
+	strcpy(tmp, filename);
+	char *dot = strrchr(tmp, '.');
+	if (!dot || dot == tmp) return "";
+	for (int i = 0; dot[i]; i++) {
+		dot[i] = tolower(dot[i]);
+	}
 	return dot + 1;
 }
 char* add_info(struct sockaddr_in &client) {
 	char* buffer = (char*)calloc(1024, 1);
 	char *connected_ip = inet_ntoa(client.sin_addr);
 	int connected_port = ntohs(client.sin_port);
-	sprintf(buffer, "Client information: IP: %s, on PORT:%d<br>", connected_ip, connected_port);
-	sprintf(buffer + strlen(buffer), "Server information: IP: %s, on PORT:%d<br>", getMyIp(), PORT);
+	sprintf(buffer, "Client IP: %s, PORT:%d", connected_ip, connected_port);
+	return buffer;
+}
+char* substr(char* s, int x, int y) {
+	char* buffer = (char*)calloc(1024, 1);
+	for (int i = x; i < y; i++) {
+		buffer[i - x] = s[i];
+	}
+	return buffer;
+}
+char* add_breadcrumbs(char* path) {
+	char* buffer = (char*)calloc(1024, 1);
+	sprintf(buffer, "<div class=\"breadcrumbs\">");
+	sprintf(buffer + strlen(buffer), "<a href=\"%s\"><span>C:</span></a>", getLink(""));
+
+	int x = 1;
+	for (int i = 1; i <= strlen(path); i++) {
+		if ((path[i] == '/') || i == strlen(path)) {
+			char* fn = (char*)calloc(1024, 1);
+			char* fp = (char*)calloc(1024, 1);
+			fn = substr(path, x, i);
+			fp = substr(path, 0, i);//fp + 1 de bo qua ki tu "\"
+			sprintf(buffer + strlen(buffer), "<span class = \"arrow\"> \\ </span><a href=\"%s\"><span>%s</span></a>", getLink(fp + 1), fn);
+			x = i + 1;
+			free(fn);
+			free(fp);
+		}
+	}
+
+	sprintf(buffer + strlen(buffer), "</div>");
 	return buffer;
 }
 const char* top = readTextFile("C:\\web/top.txt");
