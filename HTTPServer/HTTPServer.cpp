@@ -201,7 +201,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							sprintf(html + strlen(html), "</a></li>");
 						}
 					}
-					else
+					else {
 						if (FDATA.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 							sprintf(html + strlen(html), "<li><a href=\"%s\/%s\">", getLink(folder + 1), FDATA.cFileName);
 							sprintf(html + strlen(html), "<span class=\"icon folder full\"></span>");
@@ -216,6 +216,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							sprintf(html + strlen(html), "<span class=\"details\">%s</span>", getFileSizeString(FDATA.cFileName, folder));
 							sprintf(html + strlen(html), "</a></li>");
 						}
+					}
 				} while (FindNextFileA(hFind, &FDATA));
 				sprintf(html + strlen(html), "</ul></div>");
 				clenstr = (char*)calloc(1024, 1);
